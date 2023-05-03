@@ -8,14 +8,17 @@ class Backend():
         self.server_process : subprocess.Popen = None
 
     def run(self) -> Optional[subprocess.Popen]:
-        try:
+        if not self.is_server_alive():
             self.server_process = subprocess.Popen(self.run_server_cmd, cwd=self.path)
-            return self.server_process
-        except:
-            return None
+        return self.server_process
         
-    def stop(self) -> True:
-        self.server_process.stop()
+    def stop(self) -> bool:
+        if not self.is_server_alive():
+            return False
+        self.server_process.kill()
+        return True
 
     def is_server_alive(self) -> bool:
-        return self.server_process is None or self.server_process.poll() is not None
+        return not self.server_process is None or self.server_process.poll() is not None
+    
+    
