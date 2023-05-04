@@ -1,15 +1,151 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>ActiverManager</title>
-  </head>
-  <body>
-    <h1></h1>
-    <p>This is a paragraph of text.</p>
-    <ul>
-      <li>Item 1</li>
-      <li>Item 2</li>
-      <li>Item 3</li>
-    </ul>
-  </body>
-</html>
+
+<head>
+  <title>ActiverManager</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+
+<body>
+  <div class="container my-3">
+    <h1>ActiverManager</h1>
+
+    <!-- Accordion -->
+    <div id="accordion">
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="card-header" id="headingOne">
+          <h5 class="mb-0">
+            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true"
+              aria-controls="collapseOne">
+              Backend
+            </button>
+          </h5>
+        </div>
+
+        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+          <div class="card-body">
+            Content for Accordion Item 1 goes here.
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="card-header" id="headingTwo">
+          <h5 class="mb-0">
+            <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo"
+              aria-expanded="false" aria-controls="collapseTwo">
+              FontEnd
+            </button>
+          </h5>
+        </div>
+
+        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+          <div class="card-body">
+            Content for Accordion Item 2 goes here.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Accordion Button -->
+    <button type="button" id="add-accordion" data-toggle="modal" data-target="#exampleModal"
+      class="btn btn-primary mt-3">Add New Server</button>
+  </div>
+
+  <!-- 新增伺服器 Modal -->
+  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">新增資料</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="serverName" class="col-form-label">名稱:</label>
+              <input type="text" class="form-control" id="serverName">
+            </div>
+            <div class="form-group">
+              <label for="command" class="col-form-label">CMD指令:</label>
+              <input type="text" class="form-control" id="command">
+            </div>
+            <div class="form-group">
+              <label for="path" class="col-form-label">執行路徑:</label>
+              <input type="text" class="form-control" id="path">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+          <button id="add-new-server-button" type="button" class="btn btn-primary">儲存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+  <script>
+    $(document).ready(function () {
+      // Counter to keep track of number of Accordions added
+      var count = 2;
+
+      // 加入新 Accordion
+      $('#add-accordion').on('click', function () {
+
+        // Create new Card element
+        // var newCard = $('<div class="card"><div class="card-header" id="heading' + count + '"><h5 class="mb-0"><button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse' + count + '" aria-expanded="false" aria-controls="collapse' + count + '">Accordion Item ' + count + '</button></h5></div><div id="collapse' + count + '" class="collapse" aria-labelledby="heading' + count + '" data-parent="#accordion"><div class="card-body">Content for Accordion Item ' + count + ' goes here.</div></div></div>');
+      })
+    })
+
+    // 送出保存伺服器請求
+    function saveData() {
+      // 從表單中獲取輸入的值
+      const serverName = document.querySelector("#serverName").value;
+      const command = document.querySelector("#command").value;
+      const path = document.querySelector("#path").value;
+
+      if (serverNameInput.value === "" || commandInput.value === "" || pathInput.value === "") {
+        alert("請填寫完整表單！");
+        return;
+      }
+
+      // 使用 fetch 函數發送 POST 請求
+      fetch("/save-data", {
+        method: "POST",
+        body: JSON.stringify({ serverName, command, path }),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("儲存失敗");
+          }
+          // 儲存成功，關閉彈出窗口
+          $("#myModal").modal("hide");
+          alert("儲存成功");
+        })
+        .catch(error => {
+          console.error(error);
+          alert("儲存失敗");
+        });
+    }
+
+    // 綁定按鈕的 click 事件
+    document.querySelector("#save-button").addEventListener("click", saveData);
+
+  </script>
