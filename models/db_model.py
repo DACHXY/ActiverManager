@@ -4,7 +4,6 @@ from typing import Type
 
 db = SQLAlchemy()
 
-
 class Server(db.Model):
     id: Type[Column] = db.Column(Integer, primary_key=True, nullable=False)
     servername: Type[Column] = db.Column(String(256), unique=False, nullable=False)

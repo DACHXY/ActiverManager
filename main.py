@@ -124,8 +124,11 @@ def stop_server(id: int):
 
 @app.route("/all", methods=["GET"])
 def get_all_server():
-    servers = Server.query.all()
-    servers_dict_list = [server.to_dict() for server in servers]
+    servers: list[Server] = Server.query.all()
+    servers_dict_list = [
+        server.to_dict(is_alive=find_backend_by_id(BACKENDS, server.id).is_alive())
+        for server in servers
+    ]
     return jsonify(status_code=200, servers=servers_dict_list), 200
 
 
@@ -149,9 +152,7 @@ def add_new_server():
             run_server_cmd=new_server.exec_cmd,
         )
 
-    current_url = url_for("index")
-    return redirect(current_url)
-
+    return jsonify(status_code=200, msg="新增成功"), 200
 
 if __name__ == "__main__":
     app.run()

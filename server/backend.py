@@ -1,7 +1,6 @@
 from typing import Optional, Union, List
 import subprocess
 
-
 class Backend:
     def __init__(self, id: int, cwd: str, run_server_cmd: str):
         self.id: int = id
@@ -18,11 +17,28 @@ class Backend:
         if not self.is_alive():
             return False
         self.process.kill()
+        self.process.wait(timeout=5)  # 等待子程序完全結束
+
+        return_code = self.process.poll()
+        if return_code is None:
+            print("無法終止子程序, id:", self.id)
+            return False
+        elif return_code < 0:
+            print("子程序被信號終止, id:", self.id)
+        else:
+            print("子程序已經結束, id:", self.id, "退出狀態碼:", return_code)
+
+        self.process = None
         return True
 
     def is_alive(self) -> bool:
-        return not self.process is None
-
+        if self.process is None:
+            return False
+        elif self.process.poll() is not None:
+            self.process = None
+            return False
+        else:
+            return True
 
 def create_backend_subclass(idx: int) -> type:
     return type(f"Backend{idx}", (Backend,), {})

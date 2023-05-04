@@ -28,52 +28,6 @@
 
     <!-- Accordion -->
     <div id="accordion">
-      {% for server in servers %}
-      <div class="card">
-        <div class="card-header" id="heading{{ server.id }}">
-          <h5 class="mb-0">
-            <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ server.id }}"
-              aria-expanded="true" aria-controls="collapse{{ server.id }}">
-              {{ server.servername }}
-            </button>
-            <span class="badge badge-pill {{ 'badge-success' if server.is_alive else 'badge-secondary' }}"> {{ 'Online'
-              if server.is_alive else 'Offline' }} </span>
-            <div>
-          </h5>
-        </div>
-
-        <!-- 內容 -->
-        <div id="collapse{{ server.id }}" class="collapse {% if loop.index == 1 %}show{% endif %}"
-          aria-labelledby="heading{{ server.id }}" data-parent="#accordion">
-          <div class="card-body">
-            <!-- 執行按鈕 -->
-            <button onclick="runServer({{ server.id }})" class="btn btn-success btn-run-{{ server.id }}">
-              <span class="spinner-border spinner-border-sm d-none"></span>
-              <i class="bi bi-play-fill"></i>
-            </button>
-
-            <!-- 停止按鈕 -->
-            <button onClick="stopServer({{ server.id }})" class="btn btn-danger btn-stop-{{ server.id }}">
-              <span class="spinner-border spinner-border-sm d-none"></span>
-              <i class="bi bi-stop-fill"></i>
-            </button>
-
-            {# 更新按鈕 #}
-            <button type="button" class="btn btn-primary">
-              <i class="bi bi-pencil"></i>
-            </button>
-
-            <!-- 刪除按鈕 -->
-            <button onclick="deleteServer({{ server.id }})" class="btn btn-link text-danger btn-delete-{{ server.id }}"
-              type="button">
-              <span class="spinner-border spinner-border-sm d-none"></span>
-              <span class="bi bi-trash"></span>
-            </button>
-
-          </div>
-        </div>
-      </div>
-      {% endfor %}
     </div>
 
     <!-- Add Accordion Button -->
@@ -127,6 +81,7 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
 
   <script>
+
     // 送出保存伺服器請求
     function addServer() {
       // 從表單中獲取輸入的值
@@ -183,6 +138,7 @@
         .finally(() => {
           button.disabled = false;
           button.querySelector('.spinner-border').classList.add('d-none');
+          getAllServerAndRender()
         });
     }
 
@@ -200,6 +156,7 @@
         .finally(() => {
           button.disabled = false;
           button.querySelector('.spinner-border').classList.add('d-none');
+          getAllServerAndRender()
         });
     }
 
@@ -219,7 +176,76 @@
         .finally(() => {
           button.disabled = false;
           button.querySelector('.spinner-border').classList.add('d-none');
+          getAllServerAndRender()
         });
     }
+
+    // 插入頁面資料
+    function renderPage(servers) {
+      var container = document.getElementById('accordion');
+      container.innerHTML = '';
+      for (const server of servers) {
+        // 創建一個新的 div 元素作為卡片的容器
+        const cardContainer = document.createElement('div');
+        cardContainer.classList.add('card');
+        cardContainer.innerHTML = `
+          <div class="card-header" id="heading${server.id}">
+            <h5 class="mb-0">
+              <button class="btn btn-link" data-toggle="collapse" data-target="#collapse${server.id}"
+                aria-expanded="true" aria-controls="collapse${server.id}">
+                ${server.servername}
+              </button>
+              <span class="badge badge-pill ${server.is_alive ? 'badge-success' : 'badge-secondary'}">
+                ${server.is_alive ? 'Online' : 'Offline'}
+              </span>
+              <div>
+            </h5>
+          </div>
+          <div id="collapse${server.id}" class="collapse"
+            aria-labelledby="heading${server.id}" data-parent="#accordion">
+            <div class="card-body">
+              <button onclick="runServer(${server.id})" class="btn btn-success btn-run-${server.id}">
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <i class="bi bi-play-fill"></i>
+              </button>
+              <button onClick="stopServer(${server.id})" class="btn btn-danger btn-stop-${server.id}">
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <i class="bi bi-stop-fill"></i>
+              </button>
+              <button type="button" class="btn btn-primary">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button onclick="deleteServer(${server.id})" class="btn btn-link text-danger btn-delete-${server.id}" type="button">
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <span class="bi bi-trash"></span>
+              </button>
+            </div>
+          </div>
+        `
+        container.appendChild(cardContainer);
+      }
+    }
+
+    // 獲取 Server 資料
+    function getAllServerAndRender() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/all', true);
+      xhr.onload = function () {
+        if (this.status === 200) {
+          var data = JSON.parse(this.responseText);
+          console.log(data.servers)
+          renderPage(data.servers);
+        }
+      };
+      xhr.send();
+    }
+
+    getAllServerAndRender()
+
+    // 定時獲取 Server 資料
+    setInterval(getAllServerAndRender, 5000); // 每隔5秒钟调用一次XHR对象
+
   </script>
 </body>
+
+</html>
