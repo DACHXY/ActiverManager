@@ -7,10 +7,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.0.2/css/bootstrap.min.css"
+    integrity="sha512-lPg54U0Qz9f/EC36Pr4KjAZg3qM20zUwYShYgZCm6aEzGMB8ikPLvX/VkQ2mlKfJ/NmW8Gw5YmP6ZCJLZj1W9A=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
+  <style>
+    .bi-trash {
+      color: #CC3E58;
+    }
+  </style>
+
   <div class="container my-3">
     <h1>ActiverManager</h1>
 
@@ -20,17 +32,44 @@
       <div class="card">
         <div class="card-header" id="heading{{ server.id }}">
           <h5 class="mb-0">
-            <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ server.id }}" aria-expanded="true"
-              aria-controls="collapse{{ server.id }}">
+            <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ server.id }}"
+              aria-expanded="true" aria-controls="collapse{{ server.id }}">
               {{ server.servername }}
             </button>
-            <span class="badge badge-pill {{ 'badge-success' if server.is_alive else 'badge-secondary' }}"> {{ 'Online' if server.is_alive else 'Offline' }} </span>
+            <span class="badge badge-pill {{ 'badge-success' if server.is_alive else 'badge-secondary' }}"> {{ 'Online'
+              if server.is_alive else 'Offline' }} </span>
             <div>
           </h5>
         </div>
-        <div id="collapse{{ server.id }}" class="collapse {% if loop.index == 1 %}show{% endif %}" aria-labelledby="heading{{ server.id }}" data-parent="#accordion">
+
+        <!-- 內容 -->
+        <div id="collapse{{ server.id }}" class="collapse {% if loop.index == 1 %}show{% endif %}"
+          aria-labelledby="heading{{ server.id }}" data-parent="#accordion">
           <div class="card-body">
-            {{ server.exec_cmd }}
+            <!-- 執行按鈕 -->
+            <button onclick="runServer({{ server.id }})" class="btn btn-success btn-run-{{ server.id }}">
+              <span class="spinner-border spinner-border-sm d-none"></span>
+              <i class="bi bi-play-fill"></i>
+            </button>
+
+            <!-- 停止按鈕 -->
+            <button onClick="stopServer({{ server.id }})" class="btn btn-danger btn-stop-{{ server.id }}">
+              <span class="spinner-border spinner-border-sm d-none"></span>
+              <i class="bi bi-stop-fill"></i>
+            </button>
+
+            {# 更新按鈕 #}
+            <button type="button" class="btn btn-primary">
+              <i class="bi bi-pencil"></i>
+            </button>
+
+            <!-- 刪除按鈕 -->
+            <button onclick="deleteServer({{ server.id }})" class="btn btn-link text-danger btn-delete-{{ server.id }}"
+              type="button">
+              <span class="spinner-border spinner-border-sm d-none"></span>
+              <span class="bi bi-trash"></span>
+            </button>
+
           </div>
         </div>
       </div>
@@ -38,12 +77,12 @@
     </div>
 
     <!-- Add Accordion Button -->
-    <button type="button" id="add-accordion" data-toggle="modal" data-target="#exampleModal"
+    <button type="button" id="add-accordion" data-toggle="modal" data-target="#AddNewServerModal"
       class="btn btn-primary mt-3">Add New Server</button>
   </div>
 
   <!-- 新增伺服器 Modal -->
-  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+  <div class="modal fade" id="AddNewServerModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -71,7 +110,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-          <button id="add-new-server-button" type="button" class="btn btn-primary">儲存</button>
+          <button id="add-new-server-button" data-dismiss="modal" type="button" class="btn btn-primary">儲存</button>
         </div>
       </div>
     </div>
@@ -79,12 +118,17 @@
 
   <!-- jQuery and Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"
+    integrity="sha384-zYPOMqeu1DAVkHiLqWBUTcbYfZ8osu1Nd6Z89ify25QV9guujx43ITvfi12/QExE"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+    crossorigin="anonymous"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
 
   <script>
     // 送出保存伺服器請求
-    function saveData() {
+    function addServer() {
       // 從表單中獲取輸入的值
       const serverName = document.querySelector("#server-name").value;
       const command = document.querySelector("#command").value;
@@ -98,10 +142,10 @@
       // 使用 fetch 函數發送 POST 請求
       fetch("/add", {
         method: "POST",
-        body: JSON.stringify({ 
-          servername: serverName, 
-          exec_cmd: command, 
-          cwd: path 
+        body: JSON.stringify({
+          servername: serverName,
+          exec_cmd: command,
+          cwd: path
         }),
         headers: {
           "Content-Type": "application/json"
@@ -111,16 +155,71 @@
           if (!response.ok) {
             throw new Error("儲存失敗");
           }
+          console.log("儲存成功")
           // 儲存成功，關閉彈出窗口
-          $("#myModal").modal("hide");
-          alert("儲存成功");
+          $("#AddNewServerModal").modal("hide");
         })
         .catch(error => {
           console.error(error);
           alert("儲存失敗");
         });
+
     }
 
-    // 綁定按鈕的 click 事件
-    document.querySelector("#add-new-server-button").addEventListener("click", saveData);
+    // 綁定新增 Server Button 的 click 事件
+    document.querySelector("#add-new-server-button").addEventListener("click", addServer);
+
+    // 送出 執行 指令
+    function runServer(serverId) {
+      const button = document.querySelector(`.btn-run-${serverId}`);
+      button.disabled = true;
+      button.querySelector('.spinner-border').classList.remove('d-none');
+      fetch(`/run/${serverId}`)
+        .then(response => console.log(response))
+        .catch(error => {
+          console.error(error);
+          alert("執行失敗");
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.querySelector('.spinner-border').classList.add('d-none');
+        });
+    }
+
+    // 送出 停止 指令
+    function stopServer(serverId) {
+      const button = document.querySelector(`.btn-stop-${serverId}`);
+      button.disabled = true;
+      button.querySelector('.spinner-border').classList.remove('d-none');
+      fetch(`/stop/${serverId}`)
+        .then(response => console.log(response))
+        .catch(error => {
+          console.error(error);
+          alert("停止失敗");
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.querySelector('.spinner-border').classList.add('d-none');
+        });
+    }
+
+    // 送出 刪除 指令
+    function deleteServer(serverId) {
+      const button = document.querySelector(`.btn-delete-${serverId}`);
+      button.disabled = true;
+      button.querySelector('.spinner-border').classList.remove('d-none');
+      fetch(`/${serverId}`, {
+        method: 'DELETE'
+      })
+        .then(response => console.log(response))
+        .catch(error => {
+          console.error(error);
+          alert("刪除失敗");
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.querySelector('.spinner-border').classList.add('d-none');
+        });
+    }
   </script>
+</body>

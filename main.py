@@ -1,15 +1,41 @@
 from typing import Optional, Union
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, redirect, url_for
 from server.backend import Backend
 from models.db_model import db, Server
 import os
 import subprocess
 
+## HTML Config
+HOME_PATH = "home.html"
+
+## Initial Variable
+BACKENDS: list[Backend] = []
+
+
+def add_new_backend(server_id: int, backend_path: str, run_server_cmd: str):
+    new_backend = Backend(
+        id=server_id,
+        cwd=backend_path,
+        run_server_cmd=run_server_cmd,
+    )
+    BACKENDS.append(new_backend)
+
+
+def delete_backend_by_id(id: int):
+    for i, item in enumerate(BACKENDS):
+        if item.id == id:
+            del BACKENDS[i]
+            break
+
 
 def create_backend_instances(servers: list[Server]) -> list[Backend]:
     backends = []
     for server in servers:
-        backend = Backend(id=server.id, cwd=server.cwd, run_server_cmd=server.exec_cmd)
+        backend = Backend(
+            id=server.id,
+            cwd=server.cwd,
+            run_server_cmd=server.exec_cmd,
+        )
         backends.append(backend)
     return backends
 
@@ -21,13 +47,6 @@ def find_backend_by_id(lst: list[Backend], target_id) -> Backend:
         raise ValueError(f"Item with id {target_id} not found in list")
 
 
-## Config
-BACKEND_PATH = r"C:\\Users\danny\Documents\DN\Projects\Activer\backend"
-BACKEDN_RUN_CMD = "dotnet run"
-
-## HTML Config
-HOME_PATH = "home.html"
-
 app: Flask = Flask(__name__, template_folder="templates")
 app.debug = True
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
@@ -35,7 +54,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
 )
 db.init_app(app)
 
-BACKENDS: list[Backend] = []
 
 with app.app_context():
     # 創建所有資料表
@@ -56,26 +74,52 @@ def index():
     return render_template(HOME_PATH, servers=servers_dict_list)
 
 
-# @app.route("/start", methods=["GET"])
-# def start_backend():
-#     status: Optional[subprocess.Popen] = backend_server.run()
-#     if status is None:
-#         return jsonify(status_code=200, msg="後端已經在運行"), 200
-#     return jsonify(status_code=200, msg="後端開始運行"), 200
+@app.route("/<int:id>", methods=["DELETE"])
+def delete_server(id: int):
+    with app.app_context():
+        server: Server = Server.query.get(id)
+        db.session.delete(server)
+        db.session.commit()
+    delete_backend_by_id(id=id)
+    return jsonify(status_code=200, msg=f"Id: {id} 已刪除"), 200
 
 
-# @app.route("/status", methods=["GET"])
-# def get_backend_status():
-#     status: str = "running" if backend_server.is_server_alive() else "stopped"
-#     return jsonify(status_code=200, status=status), 200
+@app.route("/<int:id>", methods=["POST"])
+def update_server(id: int):
+    req_data = request.get_json()
+    servername: str = req_data["servername"]
+    exec_cmd: str = req_data["exec_cmd"]
+    cwd: str = req_data["cwd"]
+    with app.app_context():
+        server: Server = Server.query.get(id)
+        server.servername = servername
+        server.exec_cmd = exec_cmd
+        server.cwd = cwd
+        db.session.update(server)
+        db.session.commit()
+        delete_backend_by_id(id)
+        add_new_backend(
+            server_id=server.id,
+            backend_path=server.cwd,
+            run_server_cmd=server.exec_cmd,
+        )
+    return jsonify(status_code=200, msg="更新成功"), 200
 
 
-# @app.route("/stop", methods=["GET"])
-# def stop_backend():
-#     status: bool = backend_server.stop()
-#     if status:
-#         return jsonify(status_code=200, msg="後端伺服器已停止運作"), 200
-#     return jsonify(status_code=200, msg="後端伺服器沒有運作或發生錯誤"), 200
+@app.route("/run/<int:id>", methods=["GET"])
+def start_server(id: int):
+    status: Optional[subprocess.Popen] = find_backend_by_id(BACKENDS, id).run()
+    if status is None:
+        return jsonify(status_code=200, msg="後端已經在運行"), 200
+    return jsonify(status_code=200, msg="後端開始運行"), 200
+
+
+@app.route("/stop/<int:id>", methods=["GET"])
+def stop_server(id: int):
+    status: bool = find_backend_by_id(BACKENDS, id).stop()
+    if status:
+        return jsonify(status_code=200, msg="後端伺服器已停止運作"), 200
+    return jsonify(status_code=200, msg="後端伺服器沒有運作或發生錯誤"), 200
 
 
 @app.route("/all", methods=["GET"])
@@ -91,11 +135,22 @@ def add_new_server():
     servername: str = req_data["servername"]
     exec_cmd: str = req_data["exec_cmd"]
     cwd: str = req_data["cwd"]
+
+    # 加入資料庫
     with app.app_context():
         new_server: Server = Server(servername=servername, exec_cmd=exec_cmd, cwd=cwd)
         db.session.add(new_server)
         db.session.commit()
-    return jsonify(status_code=200)
+
+        # 加入 backend 運行實體
+        add_new_backend(
+            server_id=new_server.id,
+            backend_path=new_server.cwd,
+            run_server_cmd=new_server.exec_cmd,
+        )
+
+    current_url = url_for("index")
+    return redirect(current_url)
 
 
 if __name__ == "__main__":

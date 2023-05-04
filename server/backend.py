@@ -21,7 +21,6 @@ class Backend:
         return True
 
     def is_alive(self) -> bool:
-        self.process
         return not self.process is None
 
 
