@@ -16,41 +16,25 @@
 
     <!-- Accordion -->
     <div id="accordion">
-      <!-- Card 1 -->
+      {% for server in servers %}
       <div class="card">
-        <div class="card-header" id="headingOne">
+        <div class="card-header" id="heading{{ server.id }}">
           <h5 class="mb-0">
-            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true"
-              aria-controls="collapseOne">
-              Backend
+            <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ server.id }}" aria-expanded="true"
+              aria-controls="collapse{{ server.id }}">
+              {{ server.servername }}
             </button>
+            <span class="badge badge-pill {{ 'badge-success' if server.is_alive else 'badge-secondary' }}"> {{ 'Online' if server.is_alive else 'Offline' }} </span>
+            <div>
           </h5>
         </div>
-
-        <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+        <div id="collapse{{ server.id }}" class="collapse {% if loop.index == 1 %}show{% endif %}" aria-labelledby="heading{{ server.id }}" data-parent="#accordion">
           <div class="card-body">
-            Content for Accordion Item 1 goes here.
+            {{ server.exec_cmd }}
           </div>
         </div>
       </div>
-
-      <!-- Card 2 -->
-      <div class="card">
-        <div class="card-header" id="headingTwo">
-          <h5 class="mb-0">
-            <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo"
-              aria-expanded="false" aria-controls="collapseTwo">
-              FontEnd
-            </button>
-          </h5>
-        </div>
-
-        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
-          <div class="card-body">
-            Content for Accordion Item 2 goes here.
-          </div>
-        </div>
-      </div>
+      {% endfor %}
     </div>
 
     <!-- Add Accordion Button -->
@@ -72,8 +56,8 @@
         <div class="modal-body">
           <form>
             <div class="form-group">
-              <label for="serverName" class="col-form-label">名稱:</label>
-              <input type="text" class="form-control" id="serverName">
+              <label for="server-name" class="col-form-label">名稱:</label>
+              <input type="text" class="form-control" id="server-name">
             </div>
             <div class="form-group">
               <label for="command" class="col-form-label">CMD指令:</label>
@@ -99,34 +83,26 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
 
   <script>
-    $(document).ready(function () {
-      // Counter to keep track of number of Accordions added
-      var count = 2;
-
-      // 加入新 Accordion
-      $('#add-accordion').on('click', function () {
-
-        // Create new Card element
-        // var newCard = $('<div class="card"><div class="card-header" id="heading' + count + '"><h5 class="mb-0"><button class="btn btn-link collapsed" data-toggle="collapse" data-target="#collapse' + count + '" aria-expanded="false" aria-controls="collapse' + count + '">Accordion Item ' + count + '</button></h5></div><div id="collapse' + count + '" class="collapse" aria-labelledby="heading' + count + '" data-parent="#accordion"><div class="card-body">Content for Accordion Item ' + count + ' goes here.</div></div></div>');
-      })
-    })
-
     // 送出保存伺服器請求
     function saveData() {
       // 從表單中獲取輸入的值
-      const serverName = document.querySelector("#serverName").value;
+      const serverName = document.querySelector("#server-name").value;
       const command = document.querySelector("#command").value;
       const path = document.querySelector("#path").value;
 
-      if (serverNameInput.value === "" || commandInput.value === "" || pathInput.value === "") {
+      if (serverName.value === "" || command.value === "" || command.value === "") {
         alert("請填寫完整表單！");
         return;
       }
 
       // 使用 fetch 函數發送 POST 請求
-      fetch("/save-data", {
+      fetch("/add", {
         method: "POST",
-        body: JSON.stringify({ serverName, command, path }),
+        body: JSON.stringify({ 
+          servername: serverName, 
+          exec_cmd: command, 
+          cwd: path 
+        }),
         headers: {
           "Content-Type": "application/json"
         }
@@ -146,6 +122,5 @@
     }
 
     // 綁定按鈕的 click 事件
-    document.querySelector("#save-button").addEventListener("click", saveData);
-
+    document.querySelector("#add-new-server-button").addEventListener("click", saveData);
   </script>
