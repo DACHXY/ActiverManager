@@ -15,7 +15,7 @@ class Backend:
 
     def run(self) -> Optional[subprocess.Popen]:
         if not self.is_alive() and not self.is_updating():
-            self.process = subprocess.Popen(self.cmd, cwd=self.cwd, shell=True)
+            self.process = subprocess.Popen(self.cmd, cwd=self.cwd)
         return self.process
 
     def stop(self) -> bool:
