@@ -21,6 +21,10 @@
     .bi-trash {
       color: #CC3E58;
     }
+
+    .bi-box-arrow-in-down {
+      color: #FFFFFF;
+    }
   </style>
 
   <div class="container my-3">
@@ -60,6 +64,10 @@
               <label for="path" class="col-form-label">執行路徑:</label>
               <input type="text" class="form-control" id="path">
             </div>
+            <div class="form-group">
+              <label for="update-cmd" class="col-form-label">更新指令:</label>
+              <input type="text" class="form-control" id="update-cmd">
+            </div>
           </form>
         </div>
         <div class="modal-footer">
@@ -69,6 +77,47 @@
       </div>
     </div>
   </div>
+
+  <!-- 修改伺服器 Modal -->
+  <div class="modal fade" id="EditServerModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">修改資料</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="server-name" class="col-form-label">名稱:</label>
+              <input type="text" class="form-control" id="edit-server-name" value="原本的名稱">
+            </div>
+            <div class="form-group">
+              <label for="command" class="col-form-label">CMD指令:</label>
+              <input type="text" class="form-control" id="edit-command" value="原本的CMD指令">
+            </div>
+            <div class="form-group">
+              <label for="path" class="col-form-label">執行路徑:</label>
+              <input type="text" class="form-control" id="edit-path" value="原本的執行路徑">
+            </div>
+            <div class="form-group">
+              <label for="edit-update-cmd" class="col-form-label">更新指令:</label>
+              <input type="text" class="form-control" id="edit-update-cmd" value="原本的執行路徑">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+          <button onclick="editServer(event)" id="edit-server-button" data-dismiss="modal" type="button"
+            class="btn btn-primary">儲存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- jQuery and Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -88,8 +137,9 @@
       const serverName = document.querySelector("#server-name").value;
       const command = document.querySelector("#command").value;
       const path = document.querySelector("#path").value;
+      const updateCmd = document.querySelector('#update-cmd').value;
 
-      if (serverName.value === "" || command.value === "" || command.value === "") {
+      if (serverName === "" || command === "" || command === "" || updateCmd === "") {
         alert("請填寫完整表單！");
         return;
       }
@@ -100,7 +150,8 @@
         body: JSON.stringify({
           servername: serverName,
           exec_cmd: command,
-          cwd: path
+          cwd: path,
+          update_cmd: updateCmd
         }),
         headers: {
           "Content-Type": "application/json"
@@ -110,13 +161,15 @@
           if (!response.ok) {
             throw new Error("儲存失敗");
           }
-          console.log("儲存成功")
           // 儲存成功，關閉彈出窗口
           $("#AddNewServerModal").modal("hide");
         })
         .catch(error => {
           console.error(error);
           alert("儲存失敗");
+        })
+        .finally(() => {
+          getAllServerAndRender()
         });
 
     }
@@ -180,23 +233,97 @@
         });
     }
 
+    // 送出 修改 指令
+    function editServer(event) {
+      event.preventDefault(); // 防止表单提交
+      const button = event.target;
+      const serverId = button.getAttribute('value');
+
+      var name = document.getElementById("edit-server-name").value;
+      var command = document.getElementById("edit-command").value;
+      var path = document.getElementById("edit-path").value;
+      var updateCmd = document.getElementById("edit-update-cmd").value;
+
+      if (name === "" || command === "" || path === "" || updateCmd === "") {
+        alert("請填寫完整表單！");
+        return;
+      }
+
+      // 使用 fetch 函數發送 POST 請求
+      fetch(`/${serverId}`, {
+        method: "POST",
+        body: JSON.stringify({
+          servername: name,
+          exec_cmd: command,
+          cwd: path,
+          update_cmd: updateCmd
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("儲存失敗");
+          }
+          console.log("儲存成功")
+          // 儲存成功，關閉彈出窗口
+          $("#AddNewServerModal").modal("hide");
+        })
+        .catch(error => {
+          console.error(error);
+          alert("儲存失敗");
+        })
+        .finally(() => {
+          getAllServerAndRender()
+        });
+    }
+
+    // 送出 更新 指令
+    function udpateServer(serverId) {
+      const button = document.querySelector(`.btn-update-${serverId}`);
+      button.disabled = true;
+      button.querySelector('.spinner-border').classList.remove('d-none');
+
+      fetch(`/update/${serverId}`)
+        .then(response => console.log(response))
+        .catch(error => {
+          console.error(error);
+          alert("執行失敗");
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.querySelector('.spinner-border').classList.add('d-none');
+          getAllServerAndRender()
+        });
+    }
+
     // 插入頁面資料
     function renderPage(servers) {
       var container = document.getElementById('accordion');
       container.innerHTML = '';
+
       for (const server of servers) {
+        const cookieName = `accordion-${server.id}`;
+        var isExpanded = getCookie(cookieName);
+        if (isExpanded == '') {
+          isExpanded = true
+        }
         // 創建一個新的 div 元素作為卡片的容器
         const cardContainer = document.createElement('div');
         cardContainer.classList.add('card');
-        cardContainer.innerHTML = `
+        cardContainer.innerHTML = /*html*/`
           <div class="card-header" id="heading${server.id}">
             <h5 class="mb-0">
-              <button class="btn btn-link" data-toggle="collapse" data-target="#collapse${server.id}"
-                aria-expanded="true" aria-controls="collapse${server.id}">
+              <button onclick="setAccordionCookie('collapse${server.id}')" class="btn btn-link" data-toggle="collapse" data-target="#collapse${server.id}"
+                aria-expanded="${isExpanded}" aria-controls="collapse${server.id}">
                 ${server.servername}
               </button>
               <span class="badge badge-pill ${server.is_alive ? 'badge-success' : 'badge-secondary'}">
                 ${server.is_alive ? 'Online' : 'Offline'}
+              </span>
+              <span class="badge badge-pill ${server.is_updating ? 'badge-success' : 'badge-secondary'}">
+                ${server.is_updating ? 'Updating' : 'N'}
               </span>
               <div>
             </h5>
@@ -204,18 +331,38 @@
           <div id="collapse${server.id}" class="collapse"
             aria-labelledby="heading${server.id}" data-parent="#accordion">
             <div class="card-body">
+
+              <!-- 啟動伺服器 --> 
               <button onclick="runServer(${server.id})" class="btn btn-success btn-run-${server.id}">
                 <span class="spinner-border spinner-border-sm d-none"></span>
                 <i class="bi bi-play-fill"></i>
               </button>
-              <button onClick="stopServer(${server.id})" class="btn btn-danger btn-stop-${server.id}">
+
+              <!-- 停止伺服器 --> 
+              <button onclick="stopServer(${server.id})" class="btn btn-danger btn-stop-${server.id}">
                 <span class="spinner-border spinner-border-sm d-none"></span>
                 <i class="bi bi-stop-fill"></i>
               </button>
-              <button type="button" class="btn btn-primary">
+
+              <!-- 修改伺服器 -->
+              <button 
+                data-server-id="${server.id}" 
+                data-server-name="${server.servername}" 
+                data-command="${server.exec_cmd}" 
+                data-path="${server.cwd}" 
+                data-update-cmd="${server.update_cmd}"
+                type="button" class="btn btn-primary" data-toggle="modal" data-target="#EditServerModal">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button onclick="deleteServer(${server.id})" class="btn btn-link text-danger btn-delete-${server.id}" type="button">
+
+              <!-- 更新伺服器 --> 
+              <button onclick="udpateServer(${server.id})" class="btn btn-warning btn-update-${server.id}">
+                <span class="spinner-border spinner-border-sm d-none"></span>
+                <i class="bi bi-box-arrow-in-down"></i>
+              </button>
+
+              <!-- 刪除伺服器 -->
+              <button onclick="deleteServer(${server.id})" class="btn btn-link text-danger btn-update-${server.id}" type="button" >
                 <span class="spinner-border spinner-border-sm d-none"></span>
                 <span class="bi bi-trash"></span>
               </button>
@@ -224,6 +371,7 @@
         `
         container.appendChild(cardContainer);
       }
+      refreshRecordAccordin()
     }
 
     // 獲取 Server 資料
@@ -233,7 +381,6 @@
       xhr.onload = function () {
         if (this.status === 200) {
           var data = JSON.parse(this.responseText);
-          console.log(data.servers)
           renderPage(data.servers);
         }
       };
@@ -243,8 +390,72 @@
     getAllServerAndRender()
 
     // 定時獲取 Server 資料
-    setInterval(getAllServerAndRender, 5000); // 每隔5秒钟调用一次XHR对象
+    setInterval(getAllServerAndRender, 2000); // 每隔2秒钟调用一次XHR对象
 
+    $('#EditServerModal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget); // 觸發 modal 的按鈕
+      var serverId = button.data('server-id'); // 從 data 屬性獲取 server 的 id
+      var serverName = button.data('server-name'); // 從 data 屬性獲取 server 的名稱
+      var command = button.data('command'); // 從 data 屬性獲取 server 的 CMD 指令
+      var path = button.data('path'); // 從 data 屬性獲取 server 的執行路徑
+      var updateCmd = button.data('update-cmd'); // 從 data 屬性獲取 server 的更新路徑
+      var modal = $(this);
+
+      // 將按鈕的資訊顯示在表單中
+      modal.find('#edit-server-name').val(serverName);
+      modal.find('#edit-command').val(command);
+      modal.find('#edit-path').val(path);
+      modal.find('#edit-update-cmd').val(updateCmd);
+      // 將 serverId 傳遞到 modal 中的表單或其他元素中
+      modal.find('#edit-server-button').val(serverId);
+    })
+
+    function refreshRecordAccordin() {
+      // 遍历所有的 accordion
+      const accordions = document.querySelectorAll('.collapse');
+      accordions.forEach((accordion) => {
+        const id = accordion.getAttribute('id');
+        const cookieName = `accordion-${id}`;
+        const isExpanded = getCookie(cookieName);
+
+        // 如果 cookie 中记录了当前 accordion 的状态，则设置其状态
+        if (isExpanded !== '') {
+          accordion.classList.toggle('show', isExpanded === 'true');
+          accordion.setAttribute('aria-expanded', isExpanded);
+        }
+      });
+    }
+
+    // 當 Accordion 展開時，將其id添加到localStorage中
+    async function setAccordionCookie(target) {
+      // 获取按钮元素
+      const button = document.querySelector(`[data-target="#${target}"]`);
+
+      // 休息 0.2 秒
+      await sleep(200);
+      // 获取按钮元素的 aria-expanded 属性值
+      const isExpanded = button.getAttribute("aria-expanded");
+      // 将当前状态写入 cookie，过期时间为 30 天
+      document.cookie = `accordion-${target}=${isExpanded}; expires=${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}; path=/; secure=True; samesite=None`
+      console.log("cookie", `accordion-${target}=${isExpanded};`)
+    }
+
+    // 从 cookie 中获取指定名称的值
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      else return '';
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 在呈現頁面時，讀取localStorage並打開已經儲存的手風琴
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshRecordAccordin()
+    });
   </script>
 </body>
 

@@ -4,19 +4,23 @@ from server.backend import Backend
 from models.db_model import db, Server
 import os
 import subprocess
+import re
 
-## HTML Config
+## Config
 HOME_PATH = "home.html"
+IP = "0.0.0.0"
+PORT = 5050
 
 ## Initial Variable
 BACKENDS: list[Backend] = []
 
 
-def add_new_backend(server_id: int, backend_path: str, run_server_cmd: str):
+def add_new_backend(server_id: int, backend_path: str, run_server_cmd: str, update_cmd: str):
     new_backend = Backend(
         id=server_id,
         cwd=backend_path,
         run_server_cmd=run_server_cmd,
+        update_cmd=update_cmd
     )
     BACKENDS.append(new_backend)
 
@@ -35,6 +39,7 @@ def create_backend_instances(servers: list[Server]) -> list[Backend]:
             id=server.id,
             cwd=server.cwd,
             run_server_cmd=server.exec_cmd,
+            update_cmd=server.update_cmd
         )
         backends.append(backend)
     return backends
@@ -65,14 +70,7 @@ with app.app_context():
 
 @app.route("/", methods=["GET"])
 def index():
-    servers: list[Server] = Server.query.all()
-    servers_dict_list = [
-        server.to_dict(is_alive=find_backend_by_id(BACKENDS, server.id).is_alive())
-        for server in servers
-    ]
-
-    return render_template(HOME_PATH, servers=servers_dict_list)
-
+    return render_template(HOME_PATH)
 
 @app.route("/<int:id>", methods=["DELETE"])
 def delete_server(id: int):
@@ -85,23 +83,24 @@ def delete_server(id: int):
 
 
 @app.route("/<int:id>", methods=["POST"])
-def update_server(id: int):
+def update_server_info(id: int):
     req_data = request.get_json()
     servername: str = req_data["servername"]
     exec_cmd: str = req_data["exec_cmd"]
     cwd: str = req_data["cwd"]
+    update_cmd: str = req_data["update_cmd"]
     with app.app_context():
         server: Server = Server.query.get(id)
         server.servername = servername
         server.exec_cmd = exec_cmd
         server.cwd = cwd
-        db.session.update(server)
         db.session.commit()
         delete_backend_by_id(id)
         add_new_backend(
             server_id=server.id,
             backend_path=server.cwd,
             run_server_cmd=server.exec_cmd,
+            update_cmd=update_cmd
         )
     return jsonify(status_code=200, msg="更新成功"), 200
 
@@ -121,14 +120,21 @@ def stop_server(id: int):
         return jsonify(status_code=200, msg="後端伺服器已停止運作"), 200
     return jsonify(status_code=200, msg="後端伺服器沒有運作或發生錯誤"), 200
 
+@app.route("/update/<int:id>", methods=["GET"])
+def update_server_version(id: int):
+    status = find_backend_by_id(BACKENDS, id).update()
+    if status is None:
+        print("更新失敗 id:", id)
+        return jsonify(status_code=500, msg="更新失敗"), 500
+    return jsonify(status_code=200, msg="更新完成")
 
 @app.route("/all", methods=["GET"])
 def get_all_server():
     servers: list[Server] = Server.query.all()
-    servers_dict_list = [
-        server.to_dict(is_alive=find_backend_by_id(BACKENDS, server.id).is_alive())
-        for server in servers
-    ]
+    servers_dict_list: list[Backend] = []
+    for server in servers:
+        backend = find_backend_by_id(BACKENDS, server.id)
+        servers_dict_list.append(server.to_dict(is_alive=backend.is_alive(), is_updating=backend.is_updating()))
     return jsonify(status_code=200, servers=servers_dict_list), 200
 
 
@@ -138,10 +144,16 @@ def add_new_server():
     servername: str = req_data["servername"]
     exec_cmd: str = req_data["exec_cmd"]
     cwd: str = req_data["cwd"]
+    update_cmd: str = req_data["update_cmd"]
 
     # 加入資料庫
     with app.app_context():
-        new_server: Server = Server(servername=servername, exec_cmd=exec_cmd, cwd=cwd)
+        new_server: Server = Server(
+            servername=servername, 
+            exec_cmd=exec_cmd, 
+            cwd=cwd,
+            update_cmd=update_cmd
+        )
         db.session.add(new_server)
         db.session.commit()
 
@@ -150,9 +162,10 @@ def add_new_server():
             server_id=new_server.id,
             backend_path=new_server.cwd,
             run_server_cmd=new_server.exec_cmd,
+            update_cmd=new_server.update_cmd
         )
 
     return jsonify(status_code=200, msg="新增成功"), 200
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host=IP, port=PORT)
