@@ -1,6 +1,6 @@
-from typing import Optional, Union, List
+from typing import Optional, List
 import subprocess
-from helper.string_parser import replace_uuid, generate_uuid
+from helper.string_parser import generate_uuid
 
 class Backend:
     def __init__(self, id: int, cwd: str, run_server_cmd: str, update_cmd: str):

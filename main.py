@@ -1,10 +1,9 @@
-from typing import Optional, Union
+from typing import Optional
 from flask import Flask, request, render_template, jsonify, redirect, url_for
 from server.backend import Backend
 from models.db_model import db, Server
 import os
 import subprocess
-import re
 
 ## Config
 HOME_PATH = "home.html"
