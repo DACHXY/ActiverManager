@@ -1,5 +1,6 @@
 from typing import Optional, List
 import subprocess
+import psutil
 from helper.string_parser import generate_uuid
 
 class Backend:
@@ -12,16 +13,22 @@ class Backend:
         self.process: Optional[subprocess.Popen] = None
         self.update_process: Optional[subprocess.Popen] = None
         self.status: str = "stop"
+        self.process_pid: int = None
 
     def run(self) -> Optional[subprocess.Popen]:
         if not self.is_alive() and not self.is_updating():
-            self.process = subprocess.Popen(self.cmd, cwd=self.cwd)
+            self.process = subprocess.Popen(self.cmd, cwd=self.cwd, shell=True)
         return self.process
 
     def stop(self) -> bool:
         if not self.is_alive():
             return False
-        self.process.kill()
+        parent_pid = self.process.pid
+        children = psutil.Process(self.process.pid).children(recursive=True)
+        pids = [child.pid for child in children] + [parent_pid]
+        # 終止整個進程樹
+        for pid in pids:
+            psutil.Process(pid).kill()
         self.process.wait(timeout=5)  # 等待子程序完全結束
 
         return_code = self.process.poll()
@@ -37,13 +44,16 @@ class Backend:
         return True
 
     def is_alive(self) -> bool:
-        if self.process is None:
+        try:
+            status = psutil.Process(self.process.pid).status()
+            if status == psutil.STATUS_RUNNING:
+                return True
+            elif status == psutil.STATUS_TERMINATED:
+                return False
+        except psutil.NoSuchProcess:
             return False
-        elif self.process.poll() is not None:
-            self.process = None
+        except:
             return False
-        else:
-            return True
 
     def update(self):
         print("UPDATE STATUS:", self.is_updating())
@@ -56,12 +66,16 @@ class Backend:
         return self.update_process
 
     def is_updating(self) -> bool:
-        if self.update_process is None:
+        try:
+            status = psutil.Process(self.update_process.pid).status()
+            if status == psutil.STATUS_RUNNING:
+                return True
+            elif status == psutil.STATUS_TERMINATED:
+                return False
+        except psutil.NoSuchProcess:
             return False
-        elif self.update_process.poll() is not None:
-            self.update_process = None
+        except:
             return False
-        return True
 
 def create_backend_subclass(idx: int) -> type:
     return type(f"Backend{idx}", (Backend,), {})

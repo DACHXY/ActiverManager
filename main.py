@@ -1,5 +1,5 @@
 from typing import Optional
-from flask import Flask, request, render_template, jsonify, redirect, url_for
+from flask import Flask, request, render_template, jsonify
 from server.backend import Backend
 from models.db_model import db, Server
 import os
@@ -62,7 +62,7 @@ db.init_app(app)
 with app.app_context():
     # 創建所有資料表
     db.create_all()
-    servers: list[Server] = Server.query.all()
+    servers: list[Server] = db.session.execute(db.select(Server)).scalars()
     # 初始化所有資料庫
     BACKENDS = create_backend_instances(servers)
 
@@ -130,7 +130,7 @@ def update_server_version(id: int):
 
 @app.route("/all", methods=["GET"])
 def get_all_server():
-    servers: list[Server] = Server.query.all()
+    servers: list[Server] = db.session.execute(db.select(Server)).scalars()
     servers_dict_list: list[Backend] = []
     for server in servers:
         backend = find_backend_by_id(BACKENDS, server.id)
