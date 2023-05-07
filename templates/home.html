@@ -37,6 +37,8 @@
     <!-- Add Accordion Button -->
     <button type="button" id="add-accordion" data-toggle="modal" data-target="#AddNewServerModal"
       class="btn btn-primary mt-3">Add New Server</button>
+
+    <button onclick="updateProgram()" type="button" class="btn btn-danger mt-3">Update Program</button>
   </div>
 
   <!-- 新增伺服器 Modal -->
@@ -372,6 +374,16 @@
         container.appendChild(cardContainer);
       }
       refreshRecordAccordin()
+    }
+
+    // 更新程式
+    function updateProgram() {
+      fetch(`/update-program`)
+        .then(response => console.log(response))
+        .catch(error => {
+          console.error(error);
+          alert("執行失敗");
+        });
     }
 
     // 獲取 Server 資料
