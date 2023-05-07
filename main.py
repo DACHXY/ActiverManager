@@ -93,6 +93,7 @@ def update_server_info(id: int):
         server.servername = servername
         server.exec_cmd = exec_cmd
         server.cwd = cwd
+        server.update_cmd = update_cmd
         db.session.commit()
         delete_backend_by_id(id)
         add_new_backend(
