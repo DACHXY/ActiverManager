@@ -448,7 +448,7 @@
       // 获取按钮元素的 aria-expanded 属性值
       const isExpanded = button.getAttribute("aria-expanded");
       // 将当前状态写入 cookie，过期时间为 30 天
-      document.cookie = `accordion-${target}=${isExpanded}; expires=${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}; path=/; secure=True; samesite=None`
+      document.cookie = `accordion-${target}=${isExpanded}; expires=${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}; path=/; samesite=None`
       console.log("cookie", `accordion-${target}=${isExpanded};`)
     }
 
