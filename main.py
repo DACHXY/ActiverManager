@@ -51,9 +51,9 @@ def run_server():
     @app.route("/update-program", methods=["GET"])
     def update_main():
         print("UPDATE")
-        process = subprocess.Popen(["python", "updater.py"], cwd="C:\\Users\\Danny\\Documents\\DN\\Projects\\Activer\\ActiverManager\\ActiverManager", stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        shutdown_server()
-        return jsonify(status_code=201, msg="Server shutting down...", process=process.pid), 201
+        pid = os.getpid()
+        os.system(f"python updater.py {pid}")
+        return jsonify(status_code=201, msg="Server shutting down..."), 201
 
     @app.route("/", methods=["GET"])
     def index():
@@ -157,10 +157,6 @@ def run_server():
     server = ServerThread(app)
     server.start()
     print('server started, listening:', f"{IP}:{PORT}")
-        
-def shutdown_server():
-    global server
-    server.shutdown()
 
 def add_new_backend(server_id: int, backend_path: str, run_server_cmd: str, update_cmd: str):
     new_backend = Backend(
