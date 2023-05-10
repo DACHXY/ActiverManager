@@ -378,12 +378,11 @@
 
     // 更新程式
     function updateProgram() {
-      fetch(`/update-program`)
-        .then(response => console.log(response))
-        .catch(error => {
-          console.error(error);
-          alert("執行成功");
-        });
+      Promise.all([
+        fetch('https://example.com/api/data'),
+        new Promise(resolve => setTimeout(location.reload, 500)) // 延迟 500 毫秒
+      ])
+
     }
 
     // 獲取 Server 資料
