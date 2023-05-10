@@ -402,7 +402,7 @@
     getAllServerAndRender()
 
     // 定時獲取 Server 資料
-    setInterval(getAllServerAndRender, 2000); // 每隔2秒钟调用一次XHR对象
+    setInterval(getAllServerAndRender, 5000); // 每隔5秒鐘調用一次XHR
 
     $('#EditServerModal').on('show.bs.modal', function (event) {
       var button = $(event.relatedTarget); // 觸發 modal 的按鈕
