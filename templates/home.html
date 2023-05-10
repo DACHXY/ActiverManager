@@ -379,7 +379,7 @@
     // 更新程式
     function updateProgram() {
       Promise.all([
-        fetch('https://example.com/api/data'),
+        fetch('/update-program'),
         new Promise(resolve => setTimeout(location.reload, 500)) // 延迟 500 毫秒
       ])
 
